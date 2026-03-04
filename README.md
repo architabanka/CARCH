@@ -3,7 +3,7 @@ make
 ./carch x original.carch
 
 If you don't want your original files overridden while unpacking and want to **extract resources back safely under brand new directories**:
-Create a temporary directory, drop the `.carch` component in, change locations, and invoke extraction cleanly without colliding conflicts! Follow these safety steps: 
+Create a temporary directory, drop the `.carch` component in, change locations, and invoke extraction-
 
 ```bash
 mkdir extr_test
