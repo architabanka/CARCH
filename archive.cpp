@@ -34,6 +34,9 @@ namespace Archive {
 
             uint64_t freq[256] = {0};
             //ADD : increment frequency for each character in ascii
+            for(auto val:content) {
+                freq[val]++;
+            }
 
             out.write((char*)freq, sizeof(freq));
 
