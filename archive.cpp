@@ -41,10 +41,30 @@ namespace Archive {
             out.write((char*)freq, sizeof(freq));
 
             std::priority_queue<Huffman::Node*, std::vector<Huffman::Node*>, Huffman::CompareNode> pq;
-            //ADD : for all ascii values until 256 push in priority queue 
 
-            Huffman::Node* root = nullptr;
-            //ADD : Create Huffman tree through prority queue
+            // We cannot use uint8_t since it is always less than 255.
+            // When incrementing further, it overflows back to zero.
+            for (int i = 0; i < 256; i++) {
+                // Avoid creating representations for unused characters
+                if (freq[i] > 0) {
+                    Huffman::Node* node = new Huffman::Node((uint8_t)i, freq[i]);
+                    pq.push(node);
+                }
+            }
+
+            while (pq.size() > 1) {
+                Huffman::Node* child1 = pq.top();
+                pq.pop();
+
+                Huffman::Node* child2 = pq.top();
+                pq.pop();
+
+                uint64_t parent_freq = child1->freq + child2->freq;
+                Huffman::Node* parent = new Huffman::Node(parent_freq, child1, child2);
+                pq.push(parent);
+            }
+
+            Huffman::Node* root = pq.top();
 
             std::unordered_map<uint8_t, std::string> codeTable;
             if (root) Huffman::buildCodeTable(root, "", codeTable);
