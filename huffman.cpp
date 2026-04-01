@@ -43,12 +43,5 @@ namespace Huffman {
 
     //ADD : reconstructing the Huffman tree exactly as it was using the preorder bit sequence stored in the archive
     Node* deserializeTree(BitReader& br) {
-        Node * curr;
-        // if(br.readBit()==0){
-        //     curr->left = new Node();
-        // }
-        return curr;
-
-
     }
 }
