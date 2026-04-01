@@ -128,6 +128,28 @@ namespace Archive {
             std::ofstream out(fname, std::ios::binary);
             if (out && orig_size > 0) {
                //ADD : code the extracting text part from deserialized tree
+                BitReader br(in);
+
+                Huffman::Node* root = Huffman::deserializeTree(br);
+
+                if (root) {
+                uint64_t decoded_count = 0;
+    
+                while (decoded_count < orig_size) {
+                Huffman::Node* current = root;
+        
+                while (current->left || current->right) {
+                int bit = br.readBit();
+                if (bit == 0) 
+                current = current->left;
+                else          
+                current = current->right;
+                }
+                out.put(current->symbol);
+                decoded_count++;
+                }
+
+                delete root; 
                 std::cout << "Extracted: " << fname << std::endl;
             } else if (orig_size == 0) {
                 std::cout << "Extracted (empty): " << fname << std::endl;
