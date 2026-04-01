@@ -25,7 +25,9 @@ namespace Huffman {
     //generate encoding in buffer, storing preorder bit for compressed huffman tree
     void serializeTree(Node* root, BitWriter& bw) {
         Node * curr = root;
-        if(curr==NULL) return;
+        if(curr==NULL){
+            return;
+        }
         if(curr->left==NULL && curr->right==NULL){
             bw.writeBit(1);
             char c = curr->symbol;
