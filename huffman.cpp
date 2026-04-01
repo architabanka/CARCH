@@ -25,6 +25,7 @@ namespace Huffman {
     //generate encoding in buffer, storing preorder bit for compressed huffman tree
     void serializeTree(Node* root, BitWriter& bw) {
         Node * curr = root;
+        if(curr==NULL) return;
         if(curr->left==NULL && curr->right==NULL){
             bw.writeBit(1);
             char c = curr->symbol;
@@ -42,6 +43,12 @@ namespace Huffman {
 
     //ADD : reconstructing the Huffman tree exactly as it was using the preorder bit sequence stored in the archive
     Node* deserializeTree(BitReader& br) {
-        
+        Node * curr;
+        // if(br.readBit()==0){
+        //     curr->left = new Node();
+        // }
+        return curr;
+
+
     }
 }
