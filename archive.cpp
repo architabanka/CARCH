@@ -105,7 +105,11 @@ namespace Archive {
 
         char magic[5];
         //ADD : check for CARCH, giver error if wrong
-
+        in.read(magic, 5);
+        if(!(std::memcmp(magic,"CARCH",5)== 0)){
+            std::cerr << "NOT A CARCH FILE!~" << std::endl;
+            return;
+        }
         uint32_t file_count;
         in.read((char*)&file_count, 4);
 
