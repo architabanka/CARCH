@@ -45,5 +45,25 @@ namespace Huffman {
 
     //ADD : reconstructing the Huffman tree exactly as it was using the preorder bit sequence stored in the archive
     Node* deserializeTree(BitReader& br) {
+        int bit = br.readBit();
+
+        // if bit is 0 the node is internal
+        if (bit == 0){
+            Node* left  = deserializeTree(br);
+            Node* right = deserializeTree(br);
+
+            Node* present = new Node('\0', 0);
+            present->left  = left;
+            present->right = right;
+            return present;
+        }
+        else{
+            char ch = 0;
+            // reading the char
+            for(int i = 7; i >= 0; i--){
+                ch |= (br.readBit() << i);
+            }
+            return new Node(ch, 0);
+        }  
     }
 }
