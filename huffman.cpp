@@ -20,7 +20,10 @@ namespace Huffman {
     void buildCodeTable(Node* root, const std::string& currentCode, std::unordered_map<uint8_t, std::string>& codeTable) {
         if(!root) return;
         if(!root->left && !root->right)
-            codeTable[root->symbol] = currentCode + '1';
+        {
+            if(currentCode.empty()) codeTable[root->symbol] = "1";
+            else codeTable[root->symbol] = currentCode;
+        }
         else
         {
             buildCodeTable(root->left, currentCode + '1', codeTable);
