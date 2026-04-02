@@ -26,8 +26,8 @@ namespace Huffman {
         }
         else
         {
-            buildCodeTable(root->left, currentCode + '1', codeTable);
-            buildCodeTable(root->right, currentCode + '0', codeTable);
+            buildCodeTable(root->left, currentCode + '0', codeTable);
+            buildCodeTable(root->right, currentCode + '1', codeTable);
         }
         return;
     }
