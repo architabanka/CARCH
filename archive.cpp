@@ -156,7 +156,8 @@ namespace Archive {
                 decoded_count++;
                 }
 
-                delete root; 
+                delete root;
+                }
                 std::cout << "Extracted: " << fname << std::endl;
             } else if (orig_size == 0) {
                 std::cout << "Extracted (empty): " << fname << std::endl;
