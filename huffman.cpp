@@ -18,7 +18,18 @@ namespace Huffman {
     }
     //ADD : code for encoding from huffman tree
     void buildCodeTable(Node* root, const std::string& currentCode, std::unordered_map<uint8_t, std::string>& codeTable) {
-        
+        if(!root) return;
+        if(!root->left && !root->right)
+        {
+            if(currentCode.empty()) codeTable[root->symbol] = "1";
+            else codeTable[root->symbol] = currentCode;
+        }
+        else
+        {
+            buildCodeTable(root->left, currentCode + '0', codeTable);
+            buildCodeTable(root->right, currentCode + '1', codeTable);
+        }
+        return;
     }
 
     //ADD : leaves of huffman tree nodes should be 1 rest nodes should correspond to 0
