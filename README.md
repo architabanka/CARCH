@@ -5,3 +5,4 @@ make
 ./carch x myarchive.carch
 
 ```
+The archive manager creates compressed version of files with the extension .carch which is about 70% of the original file size. 
