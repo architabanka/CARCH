@@ -132,7 +132,15 @@ namespace Archive {
 
             uint64_t data_start_pos = in.tellg();
 
-            std::ofstream out(fname, std::ios::binary);
+            // Build output filename with _compressed before the extension
+            std::string outname;
+            auto dot = fname.rfind('.');
+            if (dot != std::string::npos)
+                outname = fname.substr(0, dot) + "_compressed" + fname.substr(dot);
+            else
+                outname = fname + "_compressed";
+
+            std::ofstream out(outname, std::ios::binary);
             if (out && orig_size > 0) {
                //ADD : code the extracting text part from deserialized tree
                 BitReader br(in);
@@ -158,9 +166,9 @@ namespace Archive {
 
                 delete root;
                 }
-                std::cout << "Extracted: " << fname << std::endl;
+                std::cout << "Extracted: " << outname << std::endl;
             } else if (orig_size == 0) {
-                std::cout << "Extracted (empty): " << fname << std::endl;
+                std::cout << "Extracted (empty): " << outname << std::endl;
             } else {
                 std::cerr << "Cannot open " << fname << std::endl;
             }
