@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -std=c++20 -Wall -Wextra -O2
 
-OBJS = main.o archive.o bitio.o huffman.o
+OBJS = main.o archive.o bitio.o huffman.o aes.o
 TARGET = carch
 
 all: $(TARGET)

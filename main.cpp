@@ -1,7 +1,9 @@
 #include <iostream>
+#include <filesystem>
 #include <vector>
 #include <string>
 #include "archive.hpp"
+#include "aes.hpp"
 
 using namespace std;
 
@@ -23,9 +25,20 @@ int main(int argc, char** argv) {
                 fileNames.push_back(argv[i]);
             }
             Archive::createArchive(archiveName, fileNames);
+            string password;
+            cin >> password;
+            encrypt(archiveName, password);
         } else if (cmd == "x") {
-            Archive::extractArchive(archiveName);
-        } else {
+            string tempName = "kughfiufxn";
+            string password;
+            cin >> password;
+            decrypt(archiveName, tempName, password);
+            Archive::extractArchive(tempName);
+            if (!filesystem::remove(tempName)) {
+                cout<<"Dont delete the file"<< tempName << "while the process is going on.";
+            } 
+        }
+        else {
             cerr << "Unknown command: " << cmd << endl;
             return 1;
         }
