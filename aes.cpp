@@ -267,7 +267,7 @@ int encrypt(const std::string& archiveName, const std::string& password){
     // PKCS#7 Method Padding
     // The way we convert the size into multiple of 16 bytes is add 01 as a padding 
     // if we want 1 byte (Note: if it is already multiple of 16 then we pad it with 16 bytes)
-    auto padding = 16 - (std::filesystem::file_size(archiveName))%16;
+    uint8_t padding = 16 - (std::filesystem::file_size(archiveName))%16;
 
     char myData[padding];
     for(int i = 0; i < padding; i++){
@@ -282,28 +282,27 @@ int encrypt(const std::string& archiveName, const std::string& password){
     for(int round = 0; round < 10; round++){
         file.seekp(0, std::ios::beg);
         file.clear();
-        char buffer[16];
+        uint8_t buffer[16];
 
-        while (file.read(buffer, 16) || file.gcount() > 0) {
+        while (file.write(reinterpret_cast<char*>(buffer), 16) || file.gcount() > 0) {
             // Step 1: Byte sub
-            char a[16];
+            uint8_t a[16];
             for(int i = 0; i < 16; i++){
-                a[i] = sbox[(uint8_t)buffer[i]];
+                a[i] = sbox[buffer[i]];
             }
             // Step 2: Row Shifting (Left Circular)
-            char b[16];
+            uint8_t b[16];
             for(int i = 0; i<16; i++){
                 b[i] = a[left_row_shift[i]];
             }
             // Step 3: Mix Columns (Skipped in last round)
-            char c[16];                
+            uint8_t c[16];
             if(round != 9){
-                uint8_t* intb = reinterpret_cast<uint8_t*>(b); 
                 for(int i = 0; i < 16; i+=4){
-                    c[i+0] = mul_2[intb[i]] ^ mul_3[intb[i+1]] ^       intb[i+2]  ^       intb[i+3] ;
-                    c[i+1] =       intb[i]  ^ mul_2[intb[i+1]] ^ mul_3[intb[i+2]] ^       intb[i+3] ; 
-                    c[i+2] =       intb[i]  ^       intb[i+1]  ^ mul_2[intb[i+2]] ^ mul_3[intb[i+3]]; 
-                    c[i+3] = mul_3[intb[i]] ^       intb[i+1]  ^       intb[i+2]  ^ mul_2[intb[i+3]]; 
+                    c[i+0] = mul_2[b[i]] ^ mul_3[b[i+1]] ^       b[i+2]  ^       b[i+3] ;
+                    c[i+1] =       b[i]  ^ mul_2[b[i+1]] ^ mul_3[b[i+2]] ^       b[i+3] ; 
+                    c[i+2] =       b[i]  ^       b[i+1]  ^ mul_2[b[i+2]] ^ mul_3[b[i+3]]; 
+                    c[i+3] = mul_3[b[i]] ^       b[i+1]  ^       b[i+2]  ^ mul_2[b[i+3]]; 
                 }
             }
             else{
@@ -316,22 +315,20 @@ int encrypt(const std::string& archiveName, const std::string& password){
 
             for (int i = 0; i < 4; i++) {
                 uint32_t buffer_word = 
-                    (static_cast<uint8_t>(c[i * 4]) << 24)     |
-                    (static_cast<uint8_t>(c[i * 4 + 1]) << 16) |
-                    (static_cast<uint8_t>(c[i * 4 + 2]) << 8)  |
-                    (static_cast<uint8_t>(c[i * 4 + 3]));
+                    ((c[i * 4]) << 24)     |   ((c[i * 4 + 1]) << 16)|
+                    ((c[i * 4 + 2]) << 8)  |   ((c[i * 4 + 3]));
 
                 buffer_word ^= round_keys[base_idx + i];
 
-                c[i * 4]     = static_cast<char>((buffer_word >> 24) & 0xFF);
-                c[i * 4 + 1] = static_cast<char>((buffer_word >> 16) & 0xFF);
-                c[i * 4 + 2] = static_cast<char>((buffer_word >> 8)  & 0xFF);
-                c[i * 4 + 3] = static_cast<char>(buffer_word & 0xFF);
+                c[i * 4]     = ((buffer_word >> 24) & 0xFF);
+                c[i * 4 + 1] = ((buffer_word >> 16) & 0xFF);
+                c[i * 4 + 2] = ((buffer_word >> 8)  & 0xFF);
+                c[i * 4 + 3] = (buffer_word & 0xFF);
             }
 
             // rewrite that to archive
             file.seekp(-16, std::ios::cur);
-            file.write(c, 16);
+            file.write(reinterpret_cast<char*>(c), 16);
         }
     }
 
@@ -372,37 +369,34 @@ int decrypt(const std::string& sourcePath, const std::string& destPath,const std
     for (int round = 9; round >= 0; round--) {
         file.seekp(0, std::ios::beg);
         file.clear();
-        char c[16];
+        uint8_t c[16];
 
-        while (file.read(c, 16) || file.gcount() > 0) {
+        while (file.read(reinterpret_cast<char*>(c), 16) || file.gcount() > 0) {
 
             // Step 1: Add round key
             int base_idx = (round+1)*4;
 
             for (int i = 0; i < 4; i++) {
                 uint32_t buffer_word = 
-                    (static_cast<uint8_t>(c[i * 4]) << 24)     |
-                    (static_cast<uint8_t>(c[i * 4 + 1]) << 16) |
-                    (static_cast<uint8_t>(c[i * 4 + 2]) << 8)  |
-                    (static_cast<uint8_t>(c[i * 4 + 3]));
+                    ((c[i * 4]) << 24)     |    ((c[i * 4 + 1]) << 16)|
+                    ((c[i * 4 + 2]) << 8)  |    ((c[i * 4 + 3]));
 
                 buffer_word ^= round_keys[base_idx + i];
 
-                c[i * 4]     = static_cast<char>((buffer_word >> 24) & 0xFF);
-                c[i * 4 + 1] = static_cast<char>((buffer_word >> 16) & 0xFF);
-                c[i * 4 + 2] = static_cast<char>((buffer_word >> 8)  & 0xFF);
-                c[i * 4 + 3] = static_cast<char>(buffer_word & 0xFF);
+                c[i * 4]     = ((buffer_word >> 24) & 0xFF);
+                c[i * 4 + 1] = ((buffer_word >> 16) & 0xFF);
+                c[i * 4 + 2] = ((buffer_word >> 8)  & 0xFF);
+                c[i * 4 + 3] = (buffer_word & 0xFF);
             }
 
             // Step 2: Undo Mix Columns (Skipped in first round)
-            char b[16];
-            if(round != 9){                   
-                uint8_t* intc = reinterpret_cast<uint8_t*>(c); 
+            uint8_t b[16];
+            if(round != 9){
                 for(int i = 0; i < 16; i+=4){
-                    b[i+0] = mul_14[intc[i]] ^ mul_11[intc[i+1]] ^ mul_13[intc[i+2]] ^  mul_9[intc[i+3]];
-                    b[i+1] =  mul_9[intc[i]] ^ mul_14[intc[i+1]] ^ mul_11[intc[i+2]] ^ mul_13[intc[i+3]]; 
-                    b[i+2] = mul_13[intc[i]] ^  mul_9[intc[i+1]] ^ mul_14[intc[i+2]] ^ mul_11[intc[i+3]]; 
-                    b[i+3] = mul_11[intc[i]] ^ mul_13[intc[i+1]] ^  mul_9[intc[i+2]] ^ mul_14[intc[i+3]]; 
+                    b[i+0] = mul_14[c[i]] ^ mul_11[c[i+1]] ^ mul_13[c[i+2]] ^  mul_9[c[i+3]];
+                    b[i+1] =  mul_9[c[i]] ^ mul_14[c[i+1]] ^ mul_11[c[i+2]] ^ mul_13[c[i+3]]; 
+                    b[i+2] = mul_13[c[i]] ^  mul_9[c[i+1]] ^ mul_14[c[i+2]] ^ mul_11[c[i+3]]; 
+                    b[i+3] = mul_11[c[i]] ^ mul_13[c[i+1]] ^  mul_9[c[i+2]] ^ mul_14[c[i+3]]; 
                 }            
             }
             else{
@@ -412,43 +406,43 @@ int decrypt(const std::string& sourcePath, const std::string& destPath,const std
             }
 
             // Step 3: Row Shifting (Right Circular)
-            char a[16];
+            uint8_t a[16];
             for(int i = 0; i<16; i++){
                 a[i] = b[right_row_shift[i]];
             }
 
             // Step 4: Byte substitution
-            char buffer[16];
+            uint8_t buffer[16];
             for(int i = 0; i < 16; i++){
-                buffer[i] = inv_sbox[(uint8_t)a[i]];
+                buffer[i] = inv_sbox[a[i]];
             }
 
             // rewrite that to temporary file
             file.seekp(-16, std::ios::cur);
-            file.write(buffer, 16);            
+            file.write(reinterpret_cast<char*>(buffer), 16);            
         }
 
     }
 
     file.seekp(-1, std::ios::end);
-    char pad_len;
-    file.read(&pad_len, 1);
-    if ((int)pad_len > 16) {
+    uint8_t pad_len;
+    file.read(reinterpret_cast<char*>(&pad_len), 1);
+    if (pad_len > 16) {
         std::cerr << "Decompressed file is invalid. Verify your password";
         return -1;
     }
 
-    file.seekp(-(int)pad_len, std::ios::end);
+    file.seekp(-static_cast<std::streamoff>(pad_len), std::ios::end);
 
-    for (int i = 0; i < (int)pad_len; i++) {
-        char padding;
-        file.read(&padding, 1);
+    for (int i = 0; i < pad_len; i++) {
+        uint8_t padding;
+        file.read(reinterpret_cast<char*>(&padding), 1);
         if (pad_len != padding) {
             std::cerr << "Decompressed file is invalid. Verify your password";
             return -1;           
         }
     }
     file.close();
-    std::filesystem::resize_file(destPath, fileSize - 16 - (int)pad_len);
+    std::filesystem::resize_file(destPath, fileSize - 16 - pad_len);
     return 0;
 }
