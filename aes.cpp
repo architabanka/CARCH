@@ -186,16 +186,22 @@ const uint32_t rcon[10] = {
 
 std::vector<unsigned char> salt_gen() {
 
+    std::cout << "Salt Generation started" << std::endl;
+
+
     std::vector<unsigned char> salt(16);
     if (RAND_bytes(salt.data(), 16) != 1) {
         std::cerr << "Error generating random salt using OpenSSL" << std::endl;
     }
+
+    std::cout << "Salt Generation started" << std::endl;
 
     return salt;
 }
 
 std::vector<uint32_t> key_gen(const std::string& password, const std::vector<unsigned char>& salt) {
     
+    std::cout << "Key Generation started" << std::endl;
     std::vector<uint32_t> key;
     std::vector<unsigned char> out_key;
     
@@ -220,10 +226,15 @@ std::vector<uint32_t> key_gen(const std::string& password, const std::vector<uns
     
     key.resize(4);
     std::memcpy(key.data(), out_key.data(), 16);
+    std::cout << "Key Generation done" << std::endl;
+
     return key;
 }
 
 std::vector<uint32_t> round_key_gen(const std::vector<uint32_t>& key) {
+
+    std::cout << "Round Key Generation started" << std::endl;
+
     std::vector<uint32_t> round_keys(44, 0);
 
     // Load initial 4 words directly
@@ -254,11 +265,16 @@ std::vector<uint32_t> round_key_gen(const std::vector<uint32_t>& key) {
 
         round_keys[i] = round_keys[i - 4] ^ temp;
     }
+
+    std::cout << "Round Key Generation finished." << std::endl;
+
     return round_keys;
 }
 
 
 int encrypt(const std::string& archiveName, const std::string& password){
+    std::cout << "Encryption started" << std::endl;
+
     std::fstream file(archiveName, std::ios::in | std::ios::out | std::ios::binary | std::ios::ate);
     if (!file) {
         std::cerr << "Archive not Found.";
@@ -279,22 +295,36 @@ int encrypt(const std::string& archiveName, const std::string& password){
     std::vector<uint32_t> key = key_gen(password, salt);
     std::vector<uint32_t> round_keys = round_key_gen(key);
 
-    for(int round = 0; round < 10; round++){
-        file.seekp(0, std::ios::beg);
-        file.clear();
-        uint8_t buffer[16];
+    file.seekp(0, std::ios::beg);
+    file.clear();
+    uint8_t buffer[16];
 
-        while (file.write(reinterpret_cast<char*>(buffer), 16) || file.gcount() > 0) {
+    while (file.read(reinterpret_cast<char*>(buffer), 16) || file.gcount() > 0) {
+        for (int i = 0; i < 4; i++){
+            uint32_t buffer_word = 
+                        (((uint32_t)buffer[i * 4]) << 24)    |   (((uint32_t)buffer[i * 4 + 1])  << 16)|
+                        (((uint32_t)buffer[i * 4+ 2]) << 8)  |   (((uint32_t)buffer[i * 4 + 3]));
+
+            buffer_word ^= round_keys[i];
+            buffer[i * 4]     = ((buffer_word >> 24) & 0xFF);
+            buffer[i * 4 + 1] = ((buffer_word >> 16) & 0xFF);
+            buffer[i * 4 + 2] = ((buffer_word >> 8)  & 0xFF);
+            buffer[i * 4 + 3] = (buffer_word & 0xFF);
+        }
+        for(int round = 0; round < 10; round++){
+
             // Step 1: Byte sub
             uint8_t a[16];
             for(int i = 0; i < 16; i++){
                 a[i] = sbox[buffer[i]];
             }
+
             // Step 2: Row Shifting (Left Circular)
             uint8_t b[16];
             for(int i = 0; i<16; i++){
                 b[i] = a[left_row_shift[i]];
             }
+
             // Step 3: Mix Columns (Skipped in last round)
             uint8_t c[16];
             if(round != 9){
@@ -310,13 +340,14 @@ int encrypt(const std::string& archiveName, const std::string& password){
                     c[i] = b[i];
                 }
             }
-            // Step 4: Add Round key (from (round + 1)* to (round+1)*4 + 3)
+
+            // Step 4: Add Round key (from (round + 1)*4 to (round+1)*4 + 3)
             int base_idx = (round+1)*4;
 
             for (int i = 0; i < 4; i++) {
                 uint32_t buffer_word = 
-                    ((c[i * 4]) << 24)     |   ((c[i * 4 + 1]) << 16)|
-                    ((c[i * 4 + 2]) << 8)  |   ((c[i * 4 + 3]));
+                    (((uint32_t)c[i * 4]) << 24)     |   (((uint32_t)c[i * 4 + 1]) << 16)|
+                    (((uint32_t)c[i * 4 + 2]) << 8)  |   (((uint32_t)c[i * 4 + 3]));
 
                 buffer_word ^= round_keys[base_idx + i];
 
@@ -325,11 +356,11 @@ int encrypt(const std::string& archiveName, const std::string& password){
                 c[i * 4 + 2] = ((buffer_word >> 8)  & 0xFF);
                 c[i * 4 + 3] = (buffer_word & 0xFF);
             }
-
-            // rewrite that to archive
-            file.seekp(-16, std::ios::cur);
-            file.write(reinterpret_cast<char*>(c), 16);
+            std::memcpy(buffer, c, 16);
         }
+        // rewrite that to archive
+        file.seekp(-16, std::ios::cur);
+        file.write(reinterpret_cast<char*>(buffer), 16);
     }
 
     std::vector<char> temp_salt(salt.begin(), salt.end());
@@ -337,6 +368,7 @@ int encrypt(const std::string& archiveName, const std::string& password){
     file.write(temp_salt.data(), 16);
     file.close();
     return 0;
+    std::cout << "Encryption Completed" << std::endl;
 }
 
 int decrypt(const std::string& sourcePath, const std::string& destPath,const std::string& password){
@@ -365,21 +397,19 @@ int decrypt(const std::string& sourcePath, const std::string& destPath,const std
     std::vector<uint32_t> round_keys = round_key_gen(key);
 
     std::fstream file(destPath, std::ios::in | std::ios::out | std::ios::binary);
+    file.seekp(0, std::ios::beg);
+    file.clear();
+    uint8_t c[16];
 
-    for (int round = 9; round >= 0; round--) {
-        file.seekp(0, std::ios::beg);
-        file.clear();
-        uint8_t c[16];
-
-        while (file.read(reinterpret_cast<char*>(c), 16) || file.gcount() > 0) {
-
+    while (file.read(reinterpret_cast<char*>(c), 16) || file.gcount() > 0) {
+        for (int round = 9; round >= 0; round--) {
             // Step 1: Add round key
             int base_idx = (round+1)*4;
 
             for (int i = 0; i < 4; i++) {
                 uint32_t buffer_word = 
-                    ((c[i * 4]) << 24)     |    ((c[i * 4 + 1]) << 16)|
-                    ((c[i * 4 + 2]) << 8)  |    ((c[i * 4 + 3]));
+                    (((uint32_t)c[i * 4]) << 24)     |    (((uint32_t)c[i * 4 + 1]) << 16)|
+                    (((uint32_t)c[i * 4 + 2]) << 8)  |    (((uint32_t)c[i * 4 + 3]));
 
                 buffer_word ^= round_keys[base_idx + i];
 
@@ -418,9 +448,22 @@ int decrypt(const std::string& sourcePath, const std::string& destPath,const std
             }
 
             // rewrite that to temporary file
-            file.seekp(-16, std::ios::cur);
-            file.write(reinterpret_cast<char*>(buffer), 16);            
+            std::memcpy(c, buffer, 16);          
         }
+
+        for (int i = 0; i < 4; i++){
+            uint32_t c_word = 
+                        (((uint32_t)c[i * 4]) << 24)    |   (((uint32_t)c[i * 4 + 1])  << 16)|
+                        (((uint32_t)c[i * 4+ 2]) << 8)  |   (((uint32_t)c[i * 4 + 3]));
+
+            c_word ^= round_keys[i];
+            c[i * 4]     = ((c_word >> 24) & 0xFF);
+            c[i * 4 + 1] = ((c_word >> 16) & 0xFF);
+            c[i * 4 + 2] = ((c_word >> 8)  & 0xFF);
+            c[i * 4 + 3] = (c_word & 0xFF);
+        }
+        file.seekp(-16, std::ios::cur);
+        file.write(reinterpret_cast<char*>(c), 16);
 
     }
 

@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
                 return -1;
             }
         } else if (cmd == "x") {
-            string tempName = ".carch." + archiveName + ".temp.dsiuj";
+            string tempName = "_carch_" + archiveName + ".txt";
             string password;
             cin >> password;
             if (decrypt(archiveName, tempName, password) != 0) {
@@ -40,9 +40,9 @@ int main(int argc, char** argv) {
                 return -1;
             }
             Archive::extractArchive(tempName);
-            if (!filesystem::remove(tempName)) {
-                cout<<"Dont delete the file"<< tempName << "while the process is going on.";
-            } 
+            // if (!filesystem::remove(tempName)) {
+            //    cout<<"Dont delete the file"<< tempName << "while the process is going on.";
+            // } 
         }
         else {
             cerr << "Unknown command: " << cmd << endl;
