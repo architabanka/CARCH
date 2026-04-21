@@ -27,12 +27,18 @@ int main(int argc, char** argv) {
             Archive::createArchive(archiveName, fileNames);
             string password;
             cin >> password;
-            encrypt(archiveName, password);
+            if (encrypt(archiveName, password) != 0) {
+                cerr << "Error in encryption";
+                return -1;
+            }
         } else if (cmd == "x") {
-            string tempName = "kughfiufxn";
+            string tempName = ".carch." + archiveName + ".temp.dsiuj";
             string password;
             cin >> password;
-            decrypt(archiveName, tempName, password);
+            if (decrypt(archiveName, tempName, password) != 0) {
+                cerr << "Error in decryption";
+                return -1;
+            }
             Archive::extractArchive(tempName);
             if (!filesystem::remove(tempName)) {
                 cout<<"Dont delete the file"<< tempName << "while the process is going on.";
