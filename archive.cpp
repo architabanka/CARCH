@@ -1,5 +1,5 @@
 #include "archive.hpp"
-#include "crc.cpp"
+#include "crc.hpp"
 #include <fstream>
 #include <cstring>
 
@@ -53,6 +53,15 @@ namespace Archive {
                     Huffman::Node* node = new Huffman::Node((uint8_t)i, freq[i]);
                     pq.push(node);
                 }
+            }
+
+            // Handle single unique byte: wrap in an internal node
+            // so the tree has at least one branch (code = "0")
+            if (pq.size() == 1) {
+                Huffman::Node* nd = pq.top();
+                pq.pop();
+                Huffman::Node* parent = new Huffman::Node(nd->freq, nd, nullptr);
+                pq.push(parent);
             }
 
             while (pq.size() > 1) {
@@ -130,9 +139,6 @@ namespace Archive {
             // CRC32 checksum value for the original file
             uint32_t crc32_input;
             in.read((char*)&crc32_input, 4);
-
-            uint64_t freq[256];
-            in.read((char*)freq, sizeof(freq));
 
             uint64_t comp_size;
             in.read((char*)&comp_size, 8);

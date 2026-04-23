@@ -10,7 +10,6 @@
 //   --- repeated for each file ---
 //   [filename\0]      variable - null-terminated filename string
 //   [original_size]   8 bytes  - size of file before compression
-//   [freq_table]    2048 bytes - 256 x uint64_t frequency counts
 //   [compressed_size] 8 bytes  - size of compressed data in bytes
 //   [compressed_data] variable - Huffman-encoded bits (tree + data)
 #pragma once
