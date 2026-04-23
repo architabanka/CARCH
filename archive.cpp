@@ -1,4 +1,5 @@
 #include "archive.hpp"
+#include "crc.cpp"
 #include <fstream>
 #include <cstring>
 
@@ -32,13 +33,15 @@ namespace Archive {
             out.write(fname.c_str(), fname.length() + 1);
             out.write((char*)&orig_size, 8);
 
+            // 32 Bit Cyclic Redundancy Chceksum
+            uint32_t crc32 = generate_checksum(content);
+            out.write((char*)&crc32, 4);
+
             uint64_t freq[256] = {0};
             //ADD : increment frequency for each character in ascii
             for(auto val:content) {
                 freq[val]++;
             }
-
-            out.write((char*)freq, sizeof(freq));
 
             std::priority_queue<Huffman::Node*, std::vector<Huffman::Node*>, Huffman::CompareNode> pq;
 
@@ -124,6 +127,10 @@ namespace Archive {
             uint64_t orig_size;
             in.read((char*)&orig_size, 8);
 
+            // CRC32 checksum value for the original file
+            uint32_t crc32_input;
+            in.read((char*)&crc32_input, 4);
+
             uint64_t freq[256];
             in.read((char*)freq, sizeof(freq));
 
@@ -142,31 +149,47 @@ namespace Archive {
 
             std::ofstream out(outname, std::ios::binary);
             if (out && orig_size > 0) {
-               //ADD : code the extracting text part from deserialized tree
-                BitReader br(in);
+                    //ADD : code the extracting text part from deserialized tree
+                    BitReader br(in);
 
-                Huffman::Node* root = Huffman::deserializeTree(br);
+                    Huffman::Node* root = Huffman::deserializeTree(br);
 
-                if (root) {
-                uint64_t decoded_count = 0;
-    
-                while (decoded_count < orig_size) {
-                Huffman::Node* current = root;
-        
-                while (current->left || current->right) {
-                int bit = br.readBit();
-                if (bit == 0) 
-                current = current->left;
-                else          
-                current = current->right;
-                }
-                out.put(current->symbol);
-                decoded_count++;
-                }
+                    // Buffer to store the uncompressed file in bytes
+                    std::vector<uint8_t> buffer(orig_size);
 
-                delete root;
-                }
-                std::cout << "Extracted: " << outname << std::endl;
+                    if (root) {
+                        uint64_t decoded_count = 0;
+            
+                        while (decoded_count < orig_size) {
+                            Huffman::Node* current = root;
+                    
+                            while (current->left || current->right) {
+                                int bit = br.readBit();
+                                if (bit == 0) 
+                                current = current->left;
+                                else          
+                                current = current->right;
+                            }
+                            buffer[decoded_count] = current->symbol;
+                            decoded_count++;
+                        }
+
+                        delete root;
+                    }
+
+                    // Write the buffer to disk
+                    out.write(reinterpret_cast<const char*>(buffer.data()), orig_size);
+
+                    // CRC32 Checksum for the uncompressed file
+                    uint32_t crc32_output = generate_checksum(buffer);
+                    
+                    // Checks whether the compression and decompression was successful or not
+                    if (crc32_input == crc32_output) {
+                        std::cout << "Extracted Successfully: " << outname << std::endl;
+                    }
+                    else {
+                        std::cout << "CRC32 checksum failed for " << outname << std::endl;
+                    }
             } else if (orig_size == 0) {
                 std::cout << "Extracted (empty): " << outname << std::endl;
             } else {
