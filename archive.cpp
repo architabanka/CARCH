@@ -190,11 +190,13 @@ namespace Archive {
                     uint32_t crc32_output = generate_checksum(buffer);
                     
                     // Checks whether the compression and decompression was successful or not
+                    std::cout << "CRC32 (original):  0x" << std::hex << crc32_input << std::dec << std::endl;
+                    std::cout << "CRC32 (extracted): 0x" << std::hex << crc32_output << std::dec << std::endl;
                     if (crc32_input == crc32_output) {
                         std::cout << "Extracted Successfully: " << outname << std::endl;
                     }
                     else {
-                        std::cout << "CRC32 checksum failed for " << outname << std::endl;
+                        std::cout << "CRC32 checksum FAILED for " << outname << std::endl;
                     }
             } else if (orig_size == 0) {
                 std::cout << "Extracted (empty): " << outname << std::endl;
