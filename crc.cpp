@@ -28,7 +28,7 @@ static std::vector<uint32_t> lookup_table()
 
 std::vector<uint32_t> crc_table = lookup_table();
 
-uint32_t generate_checksum(std::vector<uint8_t> data)
+uint32_t generate_checksum(std::vector<uint8_t> &data)
 {
     uint32_t crc32 = 0xFFFFFFFF;
     for(uint8_t byte: data) // Process data
