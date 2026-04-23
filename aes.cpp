@@ -211,6 +211,7 @@ int encrypt(const std::string& archiveName, const std::string& password) {
     file.seekp(0, std::ios::end);
     file.write(temp_salt.data(), 16);
     file.close();
+    std::cout << "Encrypted: " << archiveName << std::endl;
     return 0;
 }
 
@@ -373,5 +374,6 @@ int decrypt(const std::string& sourcePath, const std::string& destPath, const st
     }
     file.close();
     std::filesystem::resize_file(destPath, fileSize - 16 - pad_len);
+    std::cout << "Decrypted: " << sourcePath << ", To: " << destPath << std::endl;
     return 0;
 }

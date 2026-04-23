@@ -23,19 +23,25 @@ int main(int argc, char** argv) {
     try {
         if (cmd == "c") {
             vector<string> fileNames;
+            unsigned long long orig_size = 0;
             for (int i = 3; i < argc; ++i) {
                 fileNames.push_back(argv[i]);
+                auto temp = std::filesystem::file_size(argv[i]);
+                orig_size += temp;
             }
             Archive::createArchive(archiveName, fileNames);
             string password;
-            cout << "Enter the Password: ";
+            cout << "Create a Password: ";
             cin >> password;
             if (encrypt(archiveName, password) != 0) {
                 cerr << "Error in encryption";
                 return -1;
             }
+            auto size = std::filesystem::file_size(archiveName);
+            cout << " Compressed Archive size: " << size/(1024.0 * 1024.0) << " MB\n";
+            cout << " Memory Saved: " << (orig_size - size) / (1024.0 * 1024.0) << " MB\n";
         } else if (cmd == "x") {
-            string tempName = "Decrypted_Decompressed_carch_" + archiveName + "_aes128_huffman_ushfkjsjdhfdhk";
+            string tempName = "Decrypted_" + archiveName;
             string password;
             cout << "Enter the Password: ";
             cin >> password;
@@ -49,7 +55,7 @@ int main(int argc, char** argv) {
             }
         } else if (cmd == "e") {
             string password;
-            cout << "Enter the Password: ";
+            cout << "Create a Password: ";
             cin >> password;
             if (encrypt(archiveName, password) != 0) {
                 cerr << "Error in encryption";
@@ -59,7 +65,7 @@ int main(int argc, char** argv) {
             string password;
             cout << "Enter the Password: ";
             cin >> password;
-            if (decrypt(archiveName, "carch_decrypted_" + archiveName  + "_sufhewuifhcxjknco", password) != 0) {
+            if (decrypt(archiveName, "carch_decrypted_" + archiveName, password) != 0) {
                 cerr << "Error in decryption";
                 return -1;
             }
