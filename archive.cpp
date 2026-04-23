@@ -145,14 +145,14 @@ namespace Archive {
 
             uint64_t data_start_pos = in.tellg();
 
-            // Build output filename with _compressed before the extension
+            // Build output filename with _decompressed before the extension
             std::string outname;
             auto dot = fname.rfind('.');
             if (dot != std::string::npos)
-                outname = fname.substr(0, dot) + "_compressed" + fname.substr(dot);
+                outname = fname.substr(0, dot) + "_decompressed" + fname.substr(dot);
             else
-                outname = fname + "_compressed";
-
+                outname = fname + "_decompressed";
+            
             std::ofstream out(outname, std::ios::binary);
             if (out && orig_size > 0) {
                     //ADD : code the extracting text part from deserialized tree
